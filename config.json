@@ -1,0 +1,19 @@
+{
+  "congress_api_key": "TMDsaYtC38kUcDcUh2KeeRyqzjrNa2eFfUP7s5Fh",
+  "anthropic_api_key": "",
+  "check_interval_minutes": 1440,
+  "bills_per_check": 50,
+  "congress": 119,
+  "track_recent_days": 3,
+  "detail_fetch_limit": 100,
+  "keywords": [],
+  "email": {
+    "enabled": true,
+    "smtp_host": "smtp.mail.yahoo.com",
+    "smtp_port": 587,
+    "username": "nikelef@yahoo.com",
+    "password": "jekpuyuubxzvbpsm",
+    "from": "nikelef@yahoo.com",
+    "to": "peggy.papakosta@yahoo.com"
+  }
+}
