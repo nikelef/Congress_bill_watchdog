@@ -20,9 +20,11 @@ st.caption("Interactive snapshot of recent U.S. congressional bills.")
 
 def _build_config():
     cfg = dict(DEFAULT_CONFIG)
+    secret_congress_key = st.secrets.get("CONGRESS_API_KEY", "") if hasattr(st, "secrets") else ""
+    secret_anthropic_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, "secrets") else ""
     cfg.update(
         {
-            "congress_api_key": st.session_state.get("congress_api_key", ""),
+            "congress_api_key": st.session_state.get("congress_api_key", "") or secret_congress_key,
             "congress": st.session_state.get("congress", cfg["congress"]),
             "track_recent_days": st.session_state.get("track_recent_days", cfg["track_recent_days"]),
             "bills_per_check": st.session_state.get("bills_per_check", cfg["bills_per_check"]),
@@ -33,7 +35,7 @@ def _build_config():
     cfg["email"] = dict(cfg.get("email", {}))
     cfg["email"]["enabled"] = False
     if st.session_state.get("use_anthropic"):
-        cfg["anthropic_api_key"] = st.session_state.get("anthropic_api_key", "")
+        cfg["anthropic_api_key"] = st.session_state.get("anthropic_api_key", "") or secret_anthropic_key
     else:
         cfg["anthropic_api_key"] = ""
     return cfg
@@ -49,7 +51,12 @@ def _cached_fetch(cfg: dict, since_iso: str):
 
 with st.sidebar:
     st.subheader("Settings")
-    st.text_input("Congress API key", key="congress_api_key", value=os.environ.get("CONGRESS_API_KEY", ""))
+    st.text_input(
+        "Congress API key",
+        key="congress_api_key",
+        value=os.environ.get("CONGRESS_API_KEY", "")
+        or (st.secrets.get("CONGRESS_API_KEY", "") if hasattr(st, "secrets") else ""),
+    )
     st.number_input("Congress #", min_value=93, max_value=120, step=1, key="congress", value=DEFAULT_CONFIG["congress"])
     st.slider("Track recent days", min_value=1, max_value=30, key="track_recent_days", value=DEFAULT_CONFIG["track_recent_days"])
     st.number_input("Bills per check", min_value=10, max_value=250, step=10, key="bills_per_check", value=DEFAULT_CONFIG["bills_per_check"])
@@ -57,7 +64,13 @@ with st.sidebar:
     st.text_input("Keywords (comma-separated)", key="keywords_raw", value="")
     st.divider()
     st.checkbox("Generate descriptions (Anthropic)", key="use_anthropic", value=False)
-    st.text_input("Anthropic API key", key="anthropic_api_key", type="password", value=os.environ.get("ANTHROPIC_API_KEY", ""))
+    st.text_input(
+        "Anthropic API key",
+        key="anthropic_api_key",
+        type="password",
+        value=os.environ.get("ANTHROPIC_API_KEY", "")
+        or (st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, "secrets") else ""),
+    )
 
 
 if st.button("Fetch latest bills"):
