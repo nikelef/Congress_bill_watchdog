@@ -81,13 +81,13 @@ DEFAULT_CONFIG: dict = {
     "detail_fetch_limit":     100,          # max per-bill Congress.gov calls per run
     "keywords":               [],
     "email": {
-        "enabled":   True,
-        "smtp_host": "smtp.mail.yahoo.com",
+        "enabled":   False,
+        "smtp_host": "smtp.gmail.com",
         "smtp_port": 587,
-        "username":  "nikelef@yahoo.com",
-        "password":  "jekpuyuubxzvbpsm",
-        "from":      "nikelef@yahoo.com",
-        "to":        "peggy.papakosta@yahoo.com",
+        "username":  "",
+        "password":  "",
+        "from":      "",
+        "to":        "",
     },
 }
 
