@@ -28,7 +28,7 @@ def _build_config():
             "congress": st.session_state.get("congress", cfg["congress"]),
             "track_recent_days": st.session_state.get("track_recent_days", cfg["track_recent_days"]),
             "bills_per_check": st.session_state.get("bills_per_check", cfg["bills_per_check"]),
-            "detail_fetch_limit": st.session_state.get("detail_fetch_limit", cfg["detail_fetch_limit"]),
+            "detail_fetch_limit": st.session_state.get("detail_fetch_limit", 20),
             "keywords": st.session_state.get("keywords", []),
         }
     )
@@ -41,12 +41,18 @@ def _build_config():
     return cfg
 
 
-@st.cache_data(show_spinner=False)
-def _cached_fetch(cfg: dict, since_iso: str):
-    since = datetime.fromisoformat(since_iso)
+@st.cache_data(show_spinner=False, ttl=3600)
+def _fetch_and_enrich(cfg: dict, since_date_str: str):
+    """Fetch, enrich, and describe bills. Cached for 1 hour per unique cfg+date."""
+    since = datetime.fromisoformat(since_date_str)
     bills = fetch_bills(cfg, since_date=since)
     keywords = cfg.get("keywords", [])
-    return [b for b in bills if matches_keywords(b, keywords)]
+    bills = [b for b in bills if matches_keywords(b, keywords)]
+    enrich_bills(cfg, bills)
+    descs = generate_descriptions(bills, cfg)
+    for b in bills:
+        b["description"] = b.get("description") or descs.get(b["id"], "")
+    return bills
 
 
 with st.sidebar:
@@ -60,7 +66,7 @@ with st.sidebar:
     st.number_input("Congress #", min_value=93, max_value=120, step=1, key="congress", value=DEFAULT_CONFIG["congress"])
     st.slider("Track recent days", min_value=1, max_value=30, key="track_recent_days", value=DEFAULT_CONFIG["track_recent_days"])
     st.number_input("Bills per check", min_value=10, max_value=250, step=10, key="bills_per_check", value=DEFAULT_CONFIG["bills_per_check"])
-    st.number_input("Detail fetch limit", min_value=10, max_value=250, step=10, key="detail_fetch_limit", value=DEFAULT_CONFIG["detail_fetch_limit"])
+    st.number_input("Detail fetch limit", min_value=5, max_value=100, step=5, key="detail_fetch_limit", value=20)
     st.text_input("Keywords (comma-separated)", key="keywords_raw", value="")
     st.divider()
     st.checkbox("Generate descriptions (Anthropic)", key="use_anthropic", value=False)
@@ -84,14 +90,11 @@ if st.button("Fetch latest bills"):
         st.stop()
 
     since = datetime.now(timezone.utc) - timedelta(days=cfg["track_recent_days"])
-    since_iso = since.isoformat()
+    # Truncate to the hour so the cache hits on repeated clicks within the same hour
+    since_date_str = since.strftime("%Y-%m-%dT%H:00:00+00:00")
 
-    with st.spinner("Fetching bills from Congress.gov..."):
-        bills = _cached_fetch(cfg, since_iso)
-        enrich_bills(cfg, bills)
-        descs = generate_descriptions(bills, cfg)
-        for b in bills:
-            b["description"] = b.get("description") or descs.get(b["id"], "")
+    with st.spinner("Fetching bills from Congress.gov — this may take ~30 s on first load..."):
+        bills = _fetch_and_enrich(cfg, since_date_str)
 
     st.success(f"Loaded {len(bills)} bills updated since {since.strftime('%Y-%m-%d')}")
 
